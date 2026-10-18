@@ -279,9 +279,10 @@ foods.forEach(f => { f.active = true; f.respawn = 0; f.done = false; if (f.svg) 
 const canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
 const ROWS = MAZE.length, COLS = MAZE[0].length;
 const START = {x: 8, y: 7};
-const PLAYER_SPEED = 3.4;     // 每秒走幾格（按住時）
+const IS_TOUCH = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+const PLAYER_SPEED = IS_TOUCH ? 3.9 : 3.4;   // 每秒走幾格（按住時；觸控裝置稍快）
 const TAP_STEP = 0.22;        // 輕點一下至少走多少格（約 1/5 格）
-const TURN_TOL = 0.32;        // 離路口中心多近時可轉彎（會自動滑入中心）
+const TURN_TOL = 0.42;        // 離路口中心多近時可轉彎（會自動滑入中心）
 const player = {x: 8, y: 7, fx: 0, fy: 1, wx: 0, wy: 0, budget: 0};
 let started = false, invincible = 0, lives = 3, score = 0, count = 0, paused = false, gameOver = false, currentFood = null, answered = false, clock = 0;
 
@@ -442,11 +443,11 @@ document.addEventListener('pointerdown', e => {
 document.addEventListener('pointermove', e => {
   if (!swipe) return;
   const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y, len = Math.hypot(dx, dy);
-  if (len < 14) return;
+  if (len < 6) return;
   const d = Math.abs(dx) > Math.abs(dy) ? [Math.sign(dx), 0] : [0, Math.sign(dy)];
   const key = d.join(',');
   if (swipe.dir !== key) { swipe.dir = key; pressDir('swipe', d[0], d[1]); }
-  if (len > 40) { const k = (len - 40) / len; swipe.x += dx * k; swipe.y += dy * k; }
+  if (len > 10) { const k = (len - 10) / len; swipe.x += dx * k; swipe.y += dy * k; }
 });
 ['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, () => { swipe = null; releaseDir('swipe'); }));
 
