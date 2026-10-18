@@ -272,7 +272,7 @@ const foods = [
   {icon:"🧆", svg:ICONS.lion, word:"Meatballs", correct:"事事圓滿", opts:["事事圓滿","好彩頭","大吉大利"], r:13, c:1},
   {icon:"🌯", svg:ICONS.springroll, word:"Spring Rolls", correct:"黃金萬兩", opts:["黃金萬兩","起家興旺","年年有餘"], r:13, c:15},
   {icon:"🧁", svg:ICONS.fagao, word:"Fa Gao", correct:"大發利市", opts:["大發利市","長命百歲","好彩頭"], r:11, c:4},
-  {icon:"🍊", word:"Mandarin Orange", correct:"大吉大利", opts:["大吉大利","事事圓滿","招財進寶"], r:11, c:12}
+  {icon:"🍊", word:"Tangerine/Orange", correct:"大吉大利", opts:["大吉大利","事事圓滿","招財進寶"], r:11, c:12}
 ];
 foods.forEach(f => { f.active = true; f.respawn = 0; f.done = false; if (f.svg) f.img = svgImg(f.svg); });
 
@@ -284,7 +284,7 @@ const PLAYER_SPEED = IS_TOUCH ? 3.9 : 3.4;   // 每秒走幾格（按住時；�
 const TAP_STEP = 0.22;        // 輕點一下至少走多少格（約 1/5 格）
 const TURN_TOL = 0.42;        // 離路口中心多近時可轉彎（會自動滑入中心）
 const player = {x: 8, y: 7, fx: 0, fy: 1, wx: 0, wy: 0, budget: 0};
-let started = false, invincible = 0, lives = 3, score = 0, count = 0, paused = false, gameOver = false, currentFood = null, answered = false, clock = 0;
+let started = false, invincible = 0, grace = 0, lives = 3, score = 0, count = 0, paused = false, gameOver = false, currentFood = null, answered = false, clock = 0;
 
 let monsters = [
   {x: 8, y: 1, dx: 1, dy: 0, sp: 3.00},
@@ -555,6 +555,7 @@ function drawMonster(g) {
 function update(dt) {
   if (!started || gameOver || paused) return;
   if (invincible > 0) invincible = Math.max(0, invincible - dt);
+  if (grace > 0) grace = Math.max(0, grace - dt);   // 答題後的緩衝（不閃爝）
 
   // 答錯的年菜：倒數後重新出現（玩家還站在附近時先等待，避免立刻再觸發題目）
   foods.forEach(f => {
@@ -575,12 +576,12 @@ function update(dt) {
 
   monsters.forEach(g => {
     advance(g, g.sp * dt, monsterDecide);
-    if (invincible <= 0 && Math.hypot(player.x - g.x, player.y - g.y) < 0.55) hit();
+    if (invincible <= 0 && grace <= 0 && Math.hypot(player.x - g.x, player.y - g.y) < 0.55) hit();
   });
 }
 
 function hit() {
-  if (paused || gameOver || invincible > 0) return;
+  if (paused || gameOver || invincible > 0 || grace > 0) return;
   invincible = 1.5;
   SND.hit();
   lives--;
@@ -588,6 +589,22 @@ function hit() {
   player.x = START.x; player.y = START.y;
   player.budget = 0; player.wx = player.wy = 0;
   if (lives <= 0) end(false);
+}
+
+// 出題時（畫面被題目視窗擋住）把太靠近 Leo 的年獸移到遠處，讓他答完題有空間逃走
+function relocateMonsters(minD, farD) {
+  monsters.forEach(g => {
+    if (Math.hypot(g.x - player.x, g.y - player.y) >= minD) return;
+    const spots = [];
+    for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+      if (open(c, r) && Math.hypot(c - player.x, r - player.y) >= farD &&
+          monsters.every(o => o === g || Math.hypot(c - o.x, r - o.y) >= 2)) spots.push({x: c, y: r});
+    }
+    if (!spots.length) return;
+    const p = spots[Math.floor(Math.random() * spots.length)];
+    g.x = p.x; g.y = p.y; g.dx = 0; g.dy = 0;
+    monsterDecide(g);
+  });
 }
 
 function openQuiz(f) {
@@ -598,6 +615,7 @@ function openQuiz(f) {
   currentFood = f;
   // 進入題目時停下玩家，避免關閉視窗後繼續滑行
   stopPlayer();
+  relocateMonsters(5, 7);
 
   const qi = document.getElementById('qIcon');
   if (f.svg) qi.innerHTML = f.svg; else qi.textContent = f.icon;
@@ -645,6 +663,7 @@ function answer(o, btn) {
       paused = false;
       SND.duck(false);
       currentFood = null;
+      grace = 2;   // 答完題有 2 秒緩衝（不閃爝），Leo 可以先逃開
       if (count >= GOAL) end(true);
     }, 600);
   } else {
@@ -658,6 +677,7 @@ function answer(o, btn) {
       paused = false;
       SND.duck(false);
       currentFood = null;
+      grace = 2;   // 答完題有 2 秒緩衝（不閃爝），Leo 可以先逃開
     }, 1100);
   }
 }
