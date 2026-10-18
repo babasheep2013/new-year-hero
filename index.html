@@ -1,0 +1,869 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>新春年菜小英雄 - 英文單字三選一</title>
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+:root{color-scheme:dark;padding:env(safe-area-inset-top,0px) env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+html,body{touch-action:none;overscroll-behavior:none;-webkit-touch-callout:none;-webkit-user-select:none}
+body{
+  margin:0;
+  background:radial-gradient(circle at top,#7f1d1d,#240606 70%);
+  color:#fff;
+  font-family:system-ui,-apple-system,"Noto Sans TC",sans-serif;
+  min-height:100vh;
+  min-height:100dvh;
+  display:flex;
+  justify-content:center;
+  user-select:none;
+}
+.wrap{width:min(720px,100%);padding:12px 12px 20px}
+h1{margin:2px 0;text-align:center;color:#ffd84d;font-size:clamp(22px,6vw,34px);text-shadow:0 3px #7f1d1d}
+.sub{text-align:center;color:#ffe7a3;margin-bottom:8px;font-size:14px}
+.stats{
+  display:flex;
+  justify-content:space-between;
+  background:#450a0a;
+  border:2px solid #f59e0b;
+  border-radius:12px;
+  padding:8px 16px;
+  margin-bottom:10px;
+  font-weight:800;
+  font-size:16px;
+}
+canvas{
+  display:block;
+  width:min(100%,calc((100vh - 170px) * 17 / 15));
+  width:min(100%,calc((100dvh - 170px) * 17 / 15));
+  height:auto;
+  aspect-ratio:17/15;
+  margin:auto;
+  background:#120404;
+  border:3px solid #dc2626;
+  border-radius:14px;
+  outline:none;
+  touch-action:none;
+}
+.hint{text-align:center;color:#fed7aa;font-size:13px;margin-top:10px}
+.overlay{
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,0.85);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:16px;
+  z-index:20;
+}
+.hidden{display:none}
+.card{
+  width:min(420px,100%);
+  background:linear-gradient(#fff7ed,#fed7aa);
+  color:#431407;
+  border:4px solid #f59e0b;
+  border-radius:22px;
+  padding:22px 18px;
+  text-align:center;
+  box-shadow:0 18px 50px rgba(0,0,0,0.7);
+}
+.foodIcon{font-size:72px;line-height:1.1;margin-bottom:8px}
+.foodIcon svg{width:72px;height:72px;display:inline-block}
+.question{font-size:26px;font-weight:900;color:#991b1b;margin:0 0 16px;letter-spacing:0.5px}
+.options{display:grid;gap:10px}
+.opt{
+  padding:12px 14px;
+  border-radius:12px;
+  border:2px solid #b45309;
+  background:#fff;
+  color:#7c2d12;
+  font-size:17px;
+  font-weight:700;
+  cursor:pointer;
+  transition:transform .12s,background .12s;
+}
+.opt:hover:not(:disabled){background:#ffedd5;transform:scale(1.02)}
+.opt:active:not(:disabled){transform:scale(0.98)}
+.opt:disabled{cursor:default;opacity:.6}
+.opt.right{background:#bbf7d0;border-color:#15803d;color:#14532d;opacity:1}
+.opt.wrong{background:#fecaca;border-color:#b91c1c;color:#7f1d1d;opacity:1}
+.notice{min-height:26px;font-weight:900;margin:10px 0 0;font-size:16px}
+.mute{
+  position:fixed;
+  top:calc(8px + env(safe-area-inset-top,0px));
+  right:calc(8px + env(safe-area-inset-right,0px));
+  z-index:30;
+  width:42px;
+  height:42px;
+  border-radius:50%;
+  border:2px solid #fbbf24;
+  background:#7f1d1d;
+  color:#fff;
+  font-size:20px;
+  line-height:1;
+  cursor:pointer;
+  box-shadow:0 3px 0 #3b0a0a;
+}
+.mute:active{transform:translateY(2px);box-shadow:0 1px 0 #3b0a0a}
+.restart{
+  padding:12px 28px;
+  border-radius:999px;
+  border:2px solid #fde68a;
+  background:#dc2626;
+  color:#fff;
+  font-size:17px;
+  font-weight:bold;
+  cursor:pointer;
+}
+</style>
+</head>
+<body>
+<button id="muteBtn" class="mute" aria-label="音樂與音效開關" title="音樂與音效（M）">🔊</button>
+<div class="wrap">
+  <h1>🧧 新春年菜小英雄 🧧</h1>
+  <div class="sub">Leo 的年菜迷宮冒險</div>
+  <div class="stats">
+    <span>❤️ <b id="lives">3</b></span>
+    <span>⭐ <b id="score">0</b></span>
+    <span>🍱 <b id="count">0</b>/7</span>
+  </div>
+
+  <canvas id="game" width="510" height="450" tabindex="0"></canvas>
+
+  <div class="hint">方向鍵 ↑ ↓ ← → 或 W A S D：輕點走一小步，按住持續移動；手機／平板：手指在畫面上按住並滑動。按 M 或右上角按鈕可開關音樂</div>
+</div>
+
+<div id="start" class="overlay">
+  <div class="card">
+    <div class="foodIcon">🧧</div>
+    <h2>新春年菜小英雄</h2>
+    <p style="line-height:1.6;font-size:15px;margin:12px 0 20px;">
+      控制小英雄在迷宮中收集年菜，<br>
+      猜對英文單字對應的吉祥寓意！<br>
+      小心全區遊走的年獸，答對 7 道即可破關！<br>
+      答錯的年菜會在一會兒後重新出現。<br>手機／平板：手指按住並滑動來移動。
+    </p>
+    <button id="startBtn" class="restart">▶ 開始遊戲</button>
+  </div>
+</div>
+
+<div id="quiz" class="overlay hidden">
+  <div class="card">
+    <div id="qIcon" class="foodIcon">🐟</div>
+    <div id="qWord" class="question">Fish</div>
+    <div id="options" class="options"></div>
+    <div id="notice" class="notice"></div>
+  </div>
+</div>
+
+<div id="end" class="overlay hidden">
+  <div class="card">
+    <div id="endIcon" class="foodIcon">🎉</div>
+    <h2 id="endTitle">過年大吉！</h2>
+    <p id="endText" style="margin:14px 0 20px;font-size:16px;line-height:1.5;"></p>
+    <button id="restart" class="restart">再玩一次</button>
+  </div>
+</div>
+
+<script>
+const MAZE = [
+  "#################",
+  "#....#.....#....#",
+  "#.##.#.###.#.##.#",
+  "#...............#",
+  "#.##.#.#.#.#.##.#",
+  "#....#.....#....#",
+  "####.#.###.#.####",
+  "#...............#",
+  "####.#.###.#.####",
+  "#....#.....#....#",
+  "#.##.#.#.#.#.##.#",
+  "#...............#",
+  "#.##.#.###.#.##.#",
+  "#....#.....#....#",
+  "#################"
+];
+
+const GOAL = 7;               // 答對幾道即破關
+const RESPAWN_SECONDS = 7;   // 答錯後約 7 秒重新出現
+
+
+// 自繪圖案（emoji 沒有的年菜）
+const ICONS = {
+  radish: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+    <path d="M32 18 C26 10 20 8 17 4 C24 4 30 8 32 14 C34 8 40 4 47 4 C44 8 38 10 32 18Z" fill="#22c55e" stroke="#15803d" stroke-width="1.5" stroke-linejoin="round"/>
+    <path d="M32 18 C27 13 24 8 22 6" fill="none" stroke="#15803d" stroke-width="1.2"/>
+    <path d="M19 22 Q32 14 45 22 Q49 38 36 58 Q32 63 28 58 Q15 38 19 22Z" fill="#f8fafc" stroke="#94a3b8" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M26 28 Q29 40 31 52" fill="none" stroke="#e2e8f0" stroke-width="2" stroke-linecap="round"/>
+    <path d="M25 30 h5 M36 38 h5 M28 46 h4" stroke="#cbd5e1" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M32 60 Q33 63 35 62" fill="none" stroke="#94a3b8" stroke-width="1.5" stroke-linecap="round"/>
+  </svg>`,
+  springroll: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+    <g transform="rotate(-18 32 32)">
+      <rect x="5" y="10" width="48" height="17" rx="3" fill="#d98a2b" stroke="#7c3f0c" stroke-width="2"/>
+      <rect x="6" y="20" width="46" height="6" rx="2" fill="#b4691a"/>
+      <path d="M9 14 H44" stroke="#f7c873" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="16" cy="19" r="1.8" fill="#f2b552"/><circle cx="27" cy="17" r="1.4" fill="#f2b552"/><circle cx="37" cy="20" r="2" fill="#f2b552"/><circle cx="44" cy="17" r="1.3" fill="#f2b552"/>
+      <path d="M5 13 L10 18.5 M5 24 L10 18.5" stroke="#7c3f0c" stroke-width="1.6" stroke-linecap="round" fill="none"/>
+      <rect x="51" y="10" width="5" height="17" rx="2" fill="#c27620" stroke="#7c3f0c" stroke-width="1.6"/>
+    </g>
+    <g transform="rotate(-18 32 32)">
+      <rect x="5" y="33" width="48" height="17" rx="3" fill="#d98a2b" stroke="#7c3f0c" stroke-width="2"/>
+      <rect x="6" y="43" width="46" height="6" rx="2" fill="#b4691a"/>
+      <path d="M9 37 H44" stroke="#f7c873" stroke-width="2.2" stroke-linecap="round"/>
+      <circle cx="16" cy="42" r="1.8" fill="#f2b552"/><circle cx="27" cy="40" r="1.4" fill="#f2b552"/><circle cx="37" cy="43" r="2" fill="#f2b552"/><circle cx="44" cy="40" r="1.3" fill="#f2b552"/>
+      <ellipse cx="53" cy="41.5" rx="4.2" ry="8.5" fill="#f6e3a8" stroke="#7c3f0c" stroke-width="1.8"/>
+      <circle cx="52" cy="37.5" r="1.3" fill="#84cc16"/><circle cx="54" cy="41" r="1.3" fill="#fb923c"/><circle cx="52" cy="44.5" r="1.3" fill="#a16207"/><circle cx="54.5" cy="46" r="1" fill="#84cc16"/>
+    </g>
+  </svg>`,
+  fagao: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+    <path d="M12 38 C6 24 17 8 32 8 C47 8 58 24 52 38Z" fill="#9a5b2e" stroke="#5b2a08" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M14 30 C14 22 19 15 25 12" fill="none" stroke="#c98a4b" stroke-width="2.2" stroke-linecap="round"/>
+    <path d="M19 21 Q25 9 32 9 Q39 9 45 21 Q39 27 32 26 Q25 27 19 21Z" fill="#f6dba5" stroke="#5b2a08" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M32 10 V25 M25.5 12.5 Q28 19 27.5 25 M38.5 12.5 Q36 19 36.5 25" fill="none" stroke="#a8692f" stroke-width="1.6" stroke-linecap="round"/>
+    <path d="M12 36 H52 L46 58 Q45 60 43 60 H21 Q19 60 18 58Z" fill="#f472b6" stroke="#be185d" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M11 36 H53" stroke="#fbbf24" stroke-width="3.2" stroke-linecap="round"/>
+    <path d="M21 38 L24 59 M28 38 L29 59 M35 38 L35 59 M43 38 L40 59" stroke="#fbcfe8" stroke-width="1.6" stroke-linecap="round"/>
+  </svg>`,
+  lion: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+    <ellipse cx="32" cy="49" rx="29" ry="11" fill="#f8fafc" stroke="#94a3b8" stroke-width="2"/>
+    <ellipse cx="32" cy="48" rx="23" ry="7.5" fill="#8a2c0d"/>
+    <path d="M7 47 Q6 32 20 33 Q22 44 11 49Z" fill="#4ade80" stroke="#15803d" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M57 47 Q58 32 44 33 Q42 44 53 49Z" fill="#4ade80" stroke="#15803d" stroke-width="1.6" stroke-linejoin="round"/>
+    <path d="M10 45 Q13 38 18 36 M54 45 Q51 38 46 36" fill="none" stroke="#bbf7d0" stroke-width="1.4" stroke-linecap="round"/>
+    <circle cx="32" cy="29" r="19" fill="#9b2f10" stroke="#4a1505" stroke-width="2"/>
+    <g fill="#c2481f">
+      <circle cx="20" cy="30" r="2.6"/><circle cx="27" cy="38" r="2.4"/><circle cx="38" cy="39" r="2.6"/><circle cx="45" cy="30" r="2.4"/><circle cx="41" cy="20" r="2.4"/><circle cx="23" cy="21" r="2.2"/><circle cx="33" cy="30" r="2.4"/>
+    </g>
+    <g fill="#6b1d08">
+      <circle cx="26" cy="29" r="1.6"/><circle cx="35" cy="36" r="1.5"/><circle cx="40" cy="28" r="1.6"/><circle cx="30" cy="21" r="1.5"/><circle cx="22" cy="36" r="1.4"/><circle cx="44" cy="37" r="1.3"/>
+    </g>
+    <path d="M44 38 Q50 44 46 50 M20 40 Q14 46 19 51" fill="none" stroke="#7a2509" stroke-width="3" stroke-linecap="round"/>
+    <ellipse cx="25" cy="17" rx="8" ry="4" transform="rotate(-28 25 17)" fill="#f9a58a" opacity="0.75"/>
+    <path d="M30 12 l3 -2 M38 14 l3 1 M34 18 l3 -1" stroke="#22c55e" stroke-width="2" stroke-linecap="round"/>
+  </svg>`,
+  nian: `<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64">
+    <ellipse cx="32" cy="53" rx="27" ry="6" fill="#000" opacity="0.25"/>
+    <path d="M6 30 V43 C6 54 58 54 58 43 V30Z" fill="#7a4219" stroke="#3f1d08" stroke-width="2" stroke-linejoin="round"/>
+    <path d="M10 36 C14 42 50 42 54 36" fill="none" stroke="#9a5a2a" stroke-width="2" stroke-linecap="round"/>
+    <ellipse cx="32" cy="30" rx="26" ry="13" fill="#a35a2a" stroke="#3f1d08" stroke-width="2"/>
+    <ellipse cx="32" cy="30" rx="21" ry="9.5" fill="#b8703a"/>
+    <path d="M13 29 Q22 20 36 20" fill="none" stroke="#e2a36a" stroke-width="2.4" stroke-linecap="round"/>
+    <path d="M22 31 H42 M32 26 V35" stroke="#9a5a2a" stroke-width="1.4" stroke-linecap="round" opacity="0.8"/>
+    <ellipse cx="32" cy="30" rx="5.5" ry="3.6" fill="#b91c1c" stroke="#7f1d1d" stroke-width="1.3"/>
+    <path d="M32 26.5 Q34 24 36 24.5" fill="none" stroke="#4d7c0f" stroke-width="1.6" stroke-linecap="round"/>
+    <circle cx="20" cy="33" r="1" fill="#f5e6c8"/><circle cx="44" cy="32" r="1" fill="#f5e6c8"/><circle cx="26" cy="36" r="1" fill="#f5e6c8"/><circle cx="39" cy="36" r="1" fill="#f5e6c8"/>
+  </svg>`
+};
+function svgImg(svg) {
+  const img = new Image();
+  img.src = 'data:image/svg+xml;charset=utf-8,' + encodeURIComponent(svg);
+  return img;
+}
+
+const foods = [
+  {icon:"🐟", word:"Fish", correct:"年年有餘", opts:["年年有餘","步步高升","黃金萬兩"], r:1, c:1},
+  {icon:"🥟", word:"Dumplings", correct:"招財進寶", opts:["招財進寶","長命百歲","事事圓滿"], r:1, c:15},
+  {icon:"🥮", svg:ICONS.nian, word:"Rice Cake", correct:"步步高升", opts:["步步高升","年年有餘","大吉大利"], r:3, c:4},
+  {icon:"🍘", svg:ICONS.radish, word:"Radish Cake", correct:"好彩頭", opts:["好彩頭","招財進寶","苦盡甘來"], r:3, c:12},
+  {icon:"🍗", word:"Whole Chicken", correct:"吉祥如意、起家興旺", opts:["吉祥如意、起家興旺","大發利市","黃金萬兩"], r:5, c:8},
+  {icon:"🥬", word:"Mustard Greens", correct:"長命百歲", opts:["長命百歲","步步高升","闔家團圓"], r:9, c:8},
+  {icon:"🧆", svg:ICONS.lion, word:"Meatballs", correct:"事事圓滿", opts:["事事圓滿","好彩頭","大吉大利"], r:13, c:1},
+  {icon:"🌯", svg:ICONS.springroll, word:"Spring Rolls", correct:"黃金萬兩", opts:["黃金萬兩","起家興旺","年年有餘"], r:13, c:15},
+  {icon:"🧁", svg:ICONS.fagao, word:"Fa Gao", correct:"大發利市", opts:["大發利市","長命百歲","好彩頭"], r:11, c:4},
+  {icon:"🍊", word:"Mandarin Orange", correct:"大吉大利", opts:["大吉大利","事事圓滿","招財進寶"], r:11, c:12}
+];
+foods.forEach(f => { f.active = true; f.respawn = 0; f.done = false; if (f.svg) f.img = svgImg(f.svg); });
+
+const canvas = document.getElementById('game'), ctx = canvas.getContext('2d');
+const ROWS = MAZE.length, COLS = MAZE[0].length;
+const START = {x: 8, y: 7};
+const PLAYER_SPEED = 3.4;     // 每秒走幾格（按住時）
+const TAP_STEP = 0.22;        // 輕點一下至少走多少格（約 1/5 格）
+const TURN_TOL = 0.32;        // 離路口中心多近時可轉彎（會自動滑入中心）
+const player = {x: 8, y: 7, fx: 0, fy: 1, wx: 0, wy: 0, budget: 0};
+let started = false, invincible = 0, lives = 3, score = 0, count = 0, paused = false, gameOver = false, currentFood = null, answered = false, clock = 0;
+
+let monsters = [
+  {x: 8, y: 1, dx: 1, dy: 0, sp: 3.00},
+  {x: 3, y: 13, dx: 1, dy: 0, sp: 2.90},
+  {x: 13, y: 13, dx: -1, dy: 0, sp: 2.95}
+];
+
+function cellSize() { return Math.min(canvas.width / COLS, canvas.height / ROWS); }
+function open(c, r) { return r >= 0 && r < ROWS && c >= 0 && c < COLS && MAZE[r][c] !== '#'; }
+
+// 每局開始時，把 10 道年菜隨機、均勻地分散擺在整個迷宮
+function placeFoods() {
+  const far = (c, r, list, d) => list.every(o => Math.hypot(c - o.x, r - o.y) >= d);
+  const starts = [START, ...monsters];
+  const cells = [];
+  for (let r = 0; r < ROWS; r++) for (let c = 0; c < COLS; c++) {
+    if (open(c, r) && far(c, r, starts, 3)) cells.push({x: c, y: r});
+  }
+  const chosen = [cells[Math.floor(Math.random() * cells.length)]];
+  while (chosen.length < foods.length) {
+    // 每個候選格子計算「離已選位置最近的距離」，在最分散的幾個之中隨機挑一個
+    const scored = cells
+      .filter(p => !chosen.includes(p))
+      .map(p => ({p, d: Math.min(...chosen.map(o => Math.hypot(p.x - o.x, p.y - o.y)))}))
+      .sort((a, b) => b.d - a.d);
+    const top = scored.slice(0, 4);
+    chosen.push(top[Math.floor(Math.random() * top.length)].p);
+  }
+  for (let i = chosen.length - 1; i > 0; i--) {       // 打亂，讓每道菜出現在不同位置
+    const j = Math.floor(Math.random() * (i + 1));
+    [chosen[i], chosen[j]] = [chosen[j], chosen[i]];
+  }
+  foods.forEach((f, i) => { f.c = chosen[i].x; f.r = chosen[i].y; });
+}
+placeFoods();
+
+const EPS = 1e-6;
+function atCenter(e) { return Math.abs(e.x - Math.round(e.x)) < EPS && Math.abs(e.y - Math.round(e.y)) < EPS; }
+
+// 以「格子中心」為單位前進：不論幀率高低，都不會錯過路口、也不會穿牆
+function advance(e, dist, decide) {
+  let guard = 0;
+  while (dist > 1e-9 && guard++ < 12) {
+    if (atCenter(e)) {
+      e.x = Math.round(e.x); e.y = Math.round(e.y);
+      decide(e);
+      if ((e.dx === 0 && e.dy === 0) || !open(e.x + e.dx, e.y + e.dy)) { e.dx = 0; e.dy = 0; return; }
+    }
+    let toNext;
+    if (e.dx !== 0) {
+      toNext = e.dx > 0 ? Math.floor(e.x + EPS) + 1 - e.x : e.x - (Math.ceil(e.x - EPS) - 1);
+    } else {
+      toNext = e.dy > 0 ? Math.floor(e.y + EPS) + 1 - e.y : e.y - (Math.ceil(e.y - EPS) - 1);
+    }
+    const m = Math.min(dist, toNext);
+    e.x += e.dx * m; e.y += e.dy * m; dist -= m;
+    if (toNext - m < 1e-9) { e.x = Math.round(e.x); e.y = Math.round(e.y); }
+  }
+}
+
+function monsterDecide(g) {
+  // 年獸大多走「較少去過」的格子巡遍迷宮，偶爾隨機轉向，也有約兩成機率朝 Leo 追過去
+  g.visits = g.visits || {};
+  const here = g.x + ',' + g.y;
+  g.visits[here] = (g.visits[here] || 0) + 1;
+  const dirs = [[1, 0], [-1, 0], [0, 1], [0, -1]].filter(d => open(g.x + d[0], g.y + d[1]));
+  const forward = dirs.filter(d => !(d[0] === -g.dx && d[1] === -g.dy));
+  const pool = forward.length ? forward : dirs;
+  let next;
+  const roll = Math.random();
+  if (roll < 0.15) {
+    next = pool[Math.floor(Math.random() * pool.length)];
+  } else if (roll < 0.35 && started) {
+    // 偶爾會朝 Leo 的方向追過去，增加壓迫感
+    const dist = d => Math.hypot(g.x + d[0] - player.x, g.y + d[1] - player.y);
+    next = pool.reduce((a, b) => dist(b) < dist(a) ? b : a);
+  } else {
+    const cnt = d => g.visits[(g.x + d[0]) + ',' + (g.y + d[1])] || 0;
+    const min = Math.min(...pool.map(cnt));
+    const best = pool.filter(d => cnt(d) === min);
+    next = best[Math.floor(Math.random() * best.length)];
+  }
+  g.dx = next[0]; g.dy = next[1];
+}
+
+function stopPlayer() {
+  player.budget = 0;
+  player.wx = player.wy = 0;
+  held.length = 0;
+  player.x = Math.round(player.x); player.y = Math.round(player.y);
+}
+
+// ---- 輸入：按住才移動，輕點只走一小步 ----
+const held = [];   // 目前按住的方向，最後一個為優先 {id, dx, dy}
+function pressDir(id, dx, dy) {
+  if (gameOver || paused || !started) return;
+  const i = held.findIndex(h => h.id === id);
+  if (i >= 0) held.splice(i, 1);
+  held.push({id, dx, dy});
+  player.wx = dx; player.wy = dy;
+  player.fx = dx; player.fy = dy;
+  player.budget = TAP_STEP;
+}
+function releaseDir(id) {
+  const i = held.findIndex(h => h.id === id);
+  if (i >= 0) held.splice(i, 1);
+}
+
+// 沿 (dx,dy) 方向移動 dist 格：自動對齊走道中心、不會穿牆
+function movePlayer(dx, dy, dist) {
+  const horiz = dx !== 0;
+  const a = horiz ? 'x' : 'y', b = horiz ? 'y' : 'x';
+  const sgn = horiz ? dx : dy;
+  let rem = dist;
+  const cb = Math.round(player[b]);
+  const off = cb - player[b];
+  if (Math.abs(off) > EPS) {                  // 目前不在這條走道的中線上，需要先對齊才能轉彎
+    if (Math.abs(off) > TURN_TOL) return;
+    const ta = Math.round(player[a]);
+    const here = horiz ? open(ta, cb) : open(cb, ta);
+    const ahead = horiz ? open(ta + dx, cb) : open(cb, ta + dy);
+    if (!here || !ahead) return;
+    const st = Math.min(Math.abs(off), rem);
+    player[b] += Math.sign(off) * st; rem -= st;
+    if (Math.abs(cb - player[b]) < EPS) player[b] = cb; else return;
+  }
+  if (rem <= 0) return;
+  const t = Math.round(player[a]);
+  const wall = horiz ? !open(t + dx, cb) : !open(cb, t + dy);
+  let na = player[a] + sgn * rem;
+  if (wall) na = sgn > 0 ? Math.min(na, t) : Math.max(na, t);
+  player[a] = na;
+}
+
+function updatePlayer(dt) {
+  const dist = PLAYER_SPEED * dt;
+  const top = held[held.length - 1];
+  if (top) {
+    player.wx = top.dx; player.wy = top.dy;
+    player.fx = top.dx; player.fy = top.dy;
+    movePlayer(top.dx, top.dy, dist);
+    player.budget = Math.max(0, player.budget - dist);
+  } else if (player.budget > 0 && (player.wx || player.wy)) {
+    const d = Math.min(dist, player.budget);     // 放開後，把「一小步」走完
+    movePlayer(player.wx, player.wy, d);
+    player.budget -= d;
+  }
+}
+
+// 手機：在地圖上按住並滑動來控制方向，放開即停
+let swipe = null;
+document.addEventListener('pointerdown', e => {
+  if (e.target.closest && e.target.closest('button')) return;
+  swipe = {x: e.clientX, y: e.clientY, dir: null};
+});
+document.addEventListener('pointermove', e => {
+  if (!swipe) return;
+  const dx = e.clientX - swipe.x, dy = e.clientY - swipe.y, len = Math.hypot(dx, dy);
+  if (len < 14) return;
+  const d = Math.abs(dx) > Math.abs(dy) ? [Math.sign(dx), 0] : [0, Math.sign(dy)];
+  const key = d.join(',');
+  if (swipe.dir !== key) { swipe.dir = key; pressDir('swipe', d[0], d[1]); }
+  if (len > 40) { const k = (len - 40) / len; swipe.x += dx * k; swipe.y += dy * k; }
+});
+['pointerup', 'pointercancel'].forEach(t => document.addEventListener(t, () => { swipe = null; releaseDir('swipe'); }));
+
+const KEY_MAP = {
+  ArrowUp: [0, -1], ArrowDown: [0, 1], ArrowLeft: [-1, 0], ArrowRight: [1, 0],
+  KeyW: [0, -1], KeyS: [0, 1], KeyA: [-1, 0], KeyD: [1, 0]
+};
+
+window.addEventListener('keydown', e => {
+  if (e.code === 'KeyM') { SND.toggleMute(); return; }
+  if (!started) {
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); startGame(); }
+    return;
+  }
+  const dir = KEY_MAP[e.code];
+  if (dir) {
+    e.preventDefault();
+    if (e.repeat) return;
+    pressDir(e.code, dir[0], dir[1]);
+  }
+});
+window.addEventListener('keyup', e => { if (KEY_MAP[e.code]) releaseDir(e.code); });
+window.addEventListener('blur', () => { held.length = 0; });
+
+function drawMaze() {
+  const s = cellSize();
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  for (let r = 0; r < ROWS; r++) {
+    for (let c = 0; c < COLS; c++) {
+      if (MAZE[r][c] === '#') {
+        ctx.fillStyle = '#881337';
+        ctx.fillRect(c * s, r * s, s, s);
+        ctx.strokeStyle = '#e11d48';
+        ctx.strokeRect(c * s + 0.5, r * s + 0.5, s - 1, s - 1);
+      } else {
+        ctx.fillStyle = '#180505';
+        ctx.fillRect(c * s, r * s, s, s);
+      }
+    }
+  }
+  foods.forEach(f => {
+    if (f.active) {
+      if (f.img && f.img.complete && f.img.naturalWidth > 0) {
+        const d = s * 0.82;
+        ctx.drawImage(f.img, f.c * s + (s - d) / 2, f.r * s + (s - d) / 2, d, d);
+      } else {
+        ctx.font = (s * 0.62) + 'px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(f.icon, f.c * s + s / 2, f.r * s + s / 2);
+      }
+    }
+  });
+}
+
+function drawLeo() {
+  if (invincible > 0 && Math.floor(invincible * 10) % 2) return;
+  const s = cellSize(), R = s * 0.33;
+  const x = player.x * s + s / 2, y = player.y * s + s / 2 + 1;
+  const fx = player.fx, fy = player.fy;
+  ctx.save();
+  ctx.translate(x, y);
+  // 肩膀（藍色上衣）
+  ctx.fillStyle = '#2563eb'; ctx.beginPath(); ctx.ellipse(0, R * 1.0, R * 0.78, R * 0.42, 0, 0, Math.PI * 2); ctx.fill();
+  // 後腦金髮
+  ctx.fillStyle = '#f5b301'; ctx.beginPath(); ctx.arc(0, -R * 0.05, R * 1.0, 0, Math.PI * 2); ctx.fill();
+  // 臉
+  ctx.fillStyle = '#ffdfba'; ctx.beginPath(); ctx.arc(0, R * 0.1, R * 0.82, 0, Math.PI * 2); ctx.fill();
+  // 兩側金髮
+  ctx.fillStyle = '#facc15';
+  ctx.beginPath(); ctx.arc(-R * 0.86, R * 0.05, R * 0.3, 0, Math.PI * 2); ctx.arc(R * 0.86, R * 0.05, R * 0.3, 0, Math.PI * 2); ctx.fill();
+  // 瀏海
+  ctx.beginPath(); ctx.arc(-R * 0.5, -R * 0.1, R * 0.3, 0, Math.PI * 2); ctx.arc(0, -R * 0.06, R * 0.3, 0, Math.PI * 2); ctx.arc(R * 0.5, -R * 0.1, R * 0.3, 0, Math.PI * 2); ctx.fill();
+  // 眼睛（跟著面向方向）
+  const ex = fx * R * 0.12, ey = fy * R * 0.1;
+  ctx.fillStyle = '#fff';
+  ctx.beginPath(); ctx.arc(-R * 0.34, R * 0.22, R * 0.2, 0, Math.PI * 2); ctx.arc(R * 0.34, R * 0.22, R * 0.2, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#1e293b';
+  ctx.beginPath(); ctx.arc(-R * 0.34 + ex, R * 0.22 + ey, R * 0.11, 0, Math.PI * 2); ctx.arc(R * 0.34 + ex, R * 0.22 + ey, R * 0.11, 0, Math.PI * 2); ctx.fill();
+  // 腮紅與微笑
+  ctx.fillStyle = 'rgba(251,113,133,0.55)';
+  ctx.beginPath(); ctx.arc(-R * 0.6, R * 0.5, R * 0.13, 0, Math.PI * 2); ctx.arc(R * 0.6, R * 0.5, R * 0.13, 0, Math.PI * 2); ctx.fill();
+  ctx.strokeStyle = '#9a3412'; ctx.lineWidth = Math.max(1, R * 0.08); ctx.lineCap = 'round';
+  ctx.beginPath(); ctx.arc(0, R * 0.42, R * 0.2, 0.15 * Math.PI, 0.85 * Math.PI); ctx.stroke();
+  // 帽子：紅色毛帽 + 金色帽緣 + 小絨球
+  ctx.fillStyle = '#dc2626';
+  ctx.beginPath(); ctx.arc(0, -R * 0.42, R * 0.98, Math.PI, Math.PI * 2); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#fbbf24';
+  ctx.beginPath(); ctx.moveTo(-R * 1.04, -R * 0.2); ctx.lineTo(-R * 1.0, -R * 0.52); ctx.lineTo(R * 1.0, -R * 0.52); ctx.lineTo(R * 1.04, -R * 0.2); ctx.closePath(); ctx.fill();
+  ctx.fillStyle = '#fef3c7';
+  ctx.beginPath(); ctx.arc(0, -R * 1.5, R * 0.24, 0, Math.PI * 2); ctx.fill();
+  ctx.restore();
+}
+
+function drawMonster(g) {
+  const s = cellSize(), x = g.x * s + s / 2, y = g.y * s + s / 2, r = s * 0.35;
+  ctx.fillStyle = '#ef4444'; ctx.beginPath(); ctx.arc(x, y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#facc15'; ctx.beginPath();
+  ctx.moveTo(x - r * 0.45, y - r * 0.7); ctx.lineTo(x - r * 0.2, y - r * 1.1); ctx.lineTo(x, y - r * 0.65); ctx.fill();
+  ctx.beginPath(); ctx.moveTo(x + r * 0.45, y - r * 0.7); ctx.lineTo(x + r * 0.2, y - r * 1.1); ctx.lineTo(x, y - r * 0.65); ctx.fill();
+  ctx.fillStyle = '#fff'; ctx.beginPath(); ctx.arc(x - r * 0.25, y - r * 0.1, r * 0.22, 0, 7); ctx.arc(x + r * 0.25, y - r * 0.1, r * 0.22, 0, 7); ctx.fill();
+  ctx.fillStyle = '#111'; ctx.beginPath(); ctx.arc(x - r * 0.25 + g.dx * 2, y - r * 0.1 + g.dy * 2, r * 0.1, 0, 7); ctx.arc(x + r * 0.25 + g.dx * 2, y - r * 0.1 + g.dy * 2, r * 0.1, 0, 7); ctx.fill();
+}
+
+function update(dt) {
+  if (!started || gameOver || paused) return;
+  if (invincible > 0) invincible = Math.max(0, invincible - dt);
+
+  // 答錯的年菜：倒數後重新出現（玩家還站在附近時先等待，避免立刻再觸發題目）
+  foods.forEach(f => {
+    if (!f.active && !f.done && f.respawn > 0) {
+      f.respawn -= dt;
+      if (f.respawn <= 0) {
+        if (Math.hypot(player.x - f.c, player.y - f.r) < 1.5) f.respawn = 0.05;
+        else { f.active = true; f.respawn = 0; }
+      }
+    }
+  });
+
+  updatePlayer(dt);
+
+  for (const f of foods) {
+    if (f.active && Math.hypot(player.x - f.c, player.y - f.r) < 0.45) { openQuiz(f); break; }
+  }
+
+  monsters.forEach(g => {
+    advance(g, g.sp * dt, monsterDecide);
+    if (invincible <= 0 && Math.hypot(player.x - g.x, player.y - g.y) < 0.55) hit();
+  });
+}
+
+function hit() {
+  if (paused || gameOver || invincible > 0) return;
+  invincible = 1.5;
+  SND.hit();
+  lives--;
+  document.getElementById('lives').textContent = lives;
+  player.x = START.x; player.y = START.y;
+  player.budget = 0; player.wx = player.wy = 0;
+  if (lives <= 0) end(false);
+}
+
+function openQuiz(f) {
+  if (paused || !f.active) return;
+  paused = true;
+  SND.duck(true); SND.open();
+  answered = false;
+  currentFood = f;
+  // 進入題目時停下玩家，避免關閉視窗後繼續滑行
+  stopPlayer();
+
+  const qi = document.getElementById('qIcon');
+  if (f.svg) qi.innerHTML = f.svg; else qi.textContent = f.icon;
+  document.getElementById('qWord').textContent = f.word;
+  document.getElementById('notice').textContent = '';
+
+  const box = document.getElementById('options');
+  box.innerHTML = '';
+  const shuffled = [...f.opts];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  shuffled.forEach(o => {
+    const b = document.createElement('button');
+    b.className = 'opt';
+    b.textContent = o;
+    b.onclick = () => answer(o, b);
+    box.appendChild(b);
+  });
+  document.getElementById('quiz').classList.remove('hidden');
+}
+
+function answer(o, btn) {
+  if (answered || !currentFood) return;   // 每題只能作答一次
+  answered = true;
+  const f = currentFood;
+  const buttons = document.querySelectorAll('#options .opt');
+  buttons.forEach(b => {
+    b.disabled = true;
+    if (b.textContent === f.correct) b.classList.add('right');
+  });
+
+  if (o === f.correct) {
+    f.active = false;
+    f.done = true;
+    SND.correct();
+    count++;
+    score += 100;
+    document.getElementById('count').textContent = count;
+    document.getElementById('score').textContent = score;
+    document.getElementById('notice').textContent = '答對了！🎉';
+    setTimeout(() => {
+      document.getElementById('quiz').classList.add('hidden');
+      paused = false;
+      SND.duck(false);
+      currentFood = null;
+      if (count >= GOAL) end(true);
+    }, 600);
+  } else {
+    btn.classList.add('wrong');
+    SND.wrong();
+    f.active = false;
+    f.respawn = RESPAWN_SECONDS;
+    document.getElementById('notice').textContent = '答錯了！年菜溜走了，等等會再出現 😅';
+    setTimeout(() => {
+      document.getElementById('quiz').classList.add('hidden');
+      paused = false;
+      SND.duck(false);
+      currentFood = null;
+    }, 1100);
+  }
+}
+
+function end(win) {
+  gameOver = true;
+  SND.stopMusic(); SND.duck(false);
+  if (win) SND.win(); else SND.lose();
+  document.getElementById('endIcon').textContent = win ? '🎉' : '😢';
+  document.getElementById('endTitle').textContent = win ? '過年大吉！' : '挑戰結束';
+  document.getElementById('endText').textContent = win ? 'Leo 成功收集 7 道年菜，成功化解危機！' : '愛心用光了，再接再厲！';
+  document.getElementById('end').classList.remove('hidden');
+}
+
+
+// ================= 新年音樂與音效（Web Audio，全部即時合成，不需外部檔案） =================
+const SND = {
+  ctx: null, master: null, musicBus: null, sfxBus: null, noiseBuf: null,
+  muted: false, timer: null, step: 0, nextTime: 0,
+  STEP: 0.2,   // 每個 8 分音符的秒數
+
+  // 原創五聲音階旋律（C 大調五聲：C D E G A），共 8 小節，每小節 8 拍
+  MEL: [
+    76, 0, 79, 76, 74, 76, 72, 0,
+    74, 0, 76, 74, 72, 74, 69, 0,
+    72, 74, 76, 79, 81, 79, 76, 74,
+    76, 74, 72, 74, 72, 0, 0, 0,
+    79, 0, 81, 79, 76, 79, 74, 0,
+    76, 0, 79, 76, 74, 76, 72, 0,
+    81, 84, 81, 79, 76, 79, 81, 0,
+    79, 76, 74, 72, 74, 72, 72, 0
+  ],
+  BASS: [48, 45, 43, 48, 48, 45, 43, 48],
+
+  init() {
+    if (this.ctx) { if (this.ctx.state === 'suspended') this.ctx.resume(); return; }
+    try {
+      const AC = window.AudioContext || window.webkitAudioContext;
+      if (!AC) return;
+      const c = this.ctx = new AC();
+      const comp = c.createDynamicsCompressor();
+      this.master = c.createGain();
+      this.master.gain.value = this.muted ? 0 : 0.8;
+      this.musicBus = c.createGain(); this.musicBus.gain.value = 0.4;
+      this.sfxBus = c.createGain(); this.sfxBus.gain.value = 1;
+      this.musicBus.connect(this.master); this.sfxBus.connect(this.master);
+      this.master.connect(comp); comp.connect(c.destination);
+      const len = c.sampleRate, buf = c.createBuffer(1, len, c.sampleRate), d = buf.getChannelData(0);
+      for (let i = 0; i < len; i++) d[i] = Math.random() * 2 - 1;
+      this.noiseBuf = buf;
+    } catch (e) { this.ctx = null; }
+  },
+
+  mtof(m) { return 440 * Math.pow(2, (m - 69) / 12); },
+
+  tone(freq, t, dur, o = {}) {
+    const c = this.ctx; if (!c) return;
+    const osc = c.createOscillator(), g = c.createGain();
+    osc.type = o.type || 'sine';
+    osc.frequency.setValueAtTime(freq, t);
+    if (o.slideTo) osc.frequency.exponentialRampToValueAtTime(o.slideTo, t + dur);
+    const v = o.vol == null ? 0.2 : o.vol, a = o.attack || 0.005;
+    g.gain.setValueAtTime(0.0001, t);
+    g.gain.linearRampToValueAtTime(v, t + a);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    osc.connect(g); g.connect(o.bus || this.sfxBus);
+    osc.start(t); osc.stop(t + dur + 0.05);
+  },
+
+  noise(t, dur, vol, freq, type, bus) {
+    const c = this.ctx; if (!c) return;
+    const src = c.createBufferSource(), f = c.createBiquadFilter(), g = c.createGain();
+    src.buffer = this.noiseBuf;
+    f.type = type || 'bandpass'; f.frequency.value = freq || 2000;
+    g.gain.setValueAtTime(vol, t);
+    g.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+    src.connect(f); f.connect(g); g.connect(bus || this.sfxBus);
+    src.start(t, Math.random() * 0.5); src.stop(t + dur + 0.05);
+  },
+
+  drum(t, vol = 1, bus) {                       // 大鼓
+    this.tone(170, t, 0.22, {slideTo: 55, vol: 0.7 * vol, type: 'sine', bus});
+    this.noise(t, 0.05, 0.25 * vol, 300, 'lowpass', bus);
+  },
+  gong(t, vol = 1, bus) {                       // 鑼
+    [[196, 0.18], [196 * 2.76, 0.1], [196 * 5.4, 0.05]].forEach(([f, v]) =>
+      this.tone(f, t, 1.6, {vol: v * vol, attack: 0.01, bus}));
+    this.noise(t, 0.35, 0.12 * vol, 3500, 'bandpass', bus);
+  },
+  wood(t, vol = 1, bus) {                       // 木魚
+    this.tone(900, t, 0.06, {type: 'square', vol: 0.08 * vol, bus});
+    this.tone(620, t, 0.08, {type: 'triangle', vol: 0.12 * vol, bus});
+  },
+  pluck(freq, t, vol, bus) {                    // 撥弦（像琵琶/古箏）
+    this.tone(freq, t, 0.32, {type: 'triangle', vol, bus});
+    this.tone(freq * 2, t, 0.18, {type: 'sine', vol: vol * 0.35, bus});
+  },
+  bell(freq, t, vol = 0.22) {                   // 清脆鈴聲
+    this.tone(freq, t, 0.55, {vol});
+    this.tone(freq * 2.01, t, 0.28, {vol: vol * 0.4});
+  },
+  crackle(t, n, spread) {                       // 鞭炮劈啪聲
+    for (let i = 0; i < n; i++)
+      this.noise(t + Math.random() * spread, 0.03, 0.3, 1800 + Math.random() * 3500, 'bandpass');
+  },
+
+  // ---- 背景音樂 ----
+  startMusic() {
+    if (!this.ctx) return;
+    this.stopMusic();
+    this.step = 0; this.nextTime = this.ctx.currentTime + 0.15;
+    this.timer = setInterval(() => this.schedule(), 60);
+  },
+  stopMusic() { if (this.timer) { clearInterval(this.timer); this.timer = null; } },
+  schedule() {
+    const c = this.ctx; if (!c) return;
+    while (this.nextTime < c.currentTime + 0.3) {
+      this.playStep(this.step, this.nextTime);
+      this.nextTime += this.STEP;
+      this.step = (this.step + 1) % 64;
+    }
+  },
+  playStep(i, t) {
+    const bar = (i / 8) | 0, s = i % 8, mb = this.musicBus;
+    const m = this.MEL[i];
+    if (m) this.pluck(this.mtof(m), t, 0.2, mb);
+    if (s % 4 === 0) this.tone(this.mtof(this.BASS[bar]), t, 0.38, {vol: 0.28, bus: mb});
+    if (s === 0) { this.drum(t, 1, mb); if (bar % 4 === 0) this.gong(t, 0.7, mb); }
+    if (s === 4) this.drum(t, 0.6, mb);
+    if (s === 2 || s === 6) this.wood(t, 1, mb);
+    if (s % 2 === 1) this.noise(t, 0.025, 0.04, 7000, 'highpass', mb);
+  },
+  duck(on) {                                    // 出題時把音樂壓小聲
+    if (this.musicBus) this.musicBus.gain.setTargetAtTime(on ? 0.15 : 0.4, this.ctx.currentTime, 0.1);
+  },
+
+  // ---- 音效 ----
+  now() { return this.ctx.currentTime + 0.01; },
+  start() { if (!this.ctx) return; const t = this.now(); this.gong(t); this.crackle(t + 0.05, 10, 0.8); },
+  open() { if (!this.ctx) return; const t = this.now(); this.bell(1318.5, t); this.bell(1760, t + 0.09); },
+  correct() {
+    if (!this.ctx) return; const t = this.now();
+    [1046.5, 1318.5, 1568, 2093].forEach((f, i) => this.bell(f, t + i * 0.08, 0.25));
+    this.noise(t, 0.08, 0.3, 4000, 'highpass'); this.crackle(t + 0.1, 5, 0.4);
+  },
+  wrong() {
+    if (!this.ctx) return; const t = this.now();
+    this.tone(220, t, 0.3, {type: 'sawtooth', vol: 0.18, slideTo: 130});
+    this.tone(165, t + 0.18, 0.4, {type: 'sawtooth', vol: 0.18, slideTo: 90});
+  },
+  hit() {
+    if (!this.ctx) return; const t = this.now();
+    this.drum(t, 1.4); this.noise(t, 0.3, 0.25, 900, 'lowpass');
+    this.tone(330, t, 0.3, {type: 'square', vol: 0.1, slideTo: 80});
+  },
+  win() {
+    if (!this.ctx) return; const t = this.now();
+    this.gong(t, 1);
+    [523.25, 659.25, 783.99, 1046.5].forEach((f, i) => this.pluck(f, t + i * 0.13, 0.3));
+    [523.25, 659.25, 783.99, 1046.5].forEach(f => this.tone(f, t + 0.55, 1.1, {type: 'triangle', vol: 0.12}));
+    this.crackle(t + 0.1, 28, 2.2);
+  },
+  lose() {
+    if (!this.ctx) return; const t = this.now();
+    [392, 349, 330, 262].forEach((f, i) => this.tone(f, t + i * 0.28, 0.4, {type: 'sawtooth', vol: 0.12}));
+  },
+
+  setMuted(m) {
+    this.muted = m;
+    if (this.master) this.master.gain.setTargetAtTime(m ? 0 : 0.8, this.ctx.currentTime, 0.03);
+    const b = document.getElementById('muteBtn'); if (b) b.textContent = m ? '🔇' : '🔊';
+    try { localStorage.setItem('nyHeroMuted', m ? '1' : '0'); } catch (e) {}
+  },
+  toggleMute() { this.init(); this.setMuted(!this.muted); }
+};
+try { SND.muted = localStorage.getItem('nyHeroMuted') === '1'; } catch (e) {}
+document.getElementById('muteBtn').textContent = SND.muted ? '🔇' : '🔊';
+document.getElementById('muteBtn').addEventListener('click', e => { e.currentTarget.blur(); SND.toggleMute(); });
+document.addEventListener('visibilitychange', () => {
+  if (!SND.ctx) return;
+  if (document.hidden) SND.ctx.suspend(); else SND.ctx.resume();
+});
+
+function startGame() {
+  if (started) return;
+  started = true;
+  SND.init(); SND.startMusic(); SND.start();
+  document.getElementById('start').classList.add('hidden');
+  canvas.focus();
+}
+
+document.getElementById('startBtn').onclick = startGame;
+document.getElementById('restart').onclick = () => location.reload();
+
+let lastT = 0;
+function loop(t) {
+  const now = (t || 0) / 1000;
+  const dt = lastT ? Math.min(now - lastT, 0.05) : 0;
+  lastT = now;
+  clock = now;
+  update(dt);
+  drawMaze();
+  monsters.forEach(drawMonster);
+  drawLeo();
+  requestAnimationFrame(loop);
+}
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
